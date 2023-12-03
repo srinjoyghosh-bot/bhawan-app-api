@@ -119,6 +119,7 @@ exports.login = async (req, res, next) => {
     }
     const token = jwt.sign(
       {
+        name:student.name,
         enrollment: student.enrollment,
         email: student.email,
         hostel: student.hostel,

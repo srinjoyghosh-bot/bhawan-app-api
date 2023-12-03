@@ -2,7 +2,6 @@ const { validationResult } = require("express-validator");
 const { db } = require("../firebase.js");
 const {
   collection,
-  addDoc,
   query,
   where,
   getDocs,
@@ -131,6 +130,7 @@ exports.delete = async (req, res, next) => {
   }
 };
 
+// toggle resolved marker
 exports.markAsResolved = async (req, res, next) => {
   try {
     const complainId = req.query.id;

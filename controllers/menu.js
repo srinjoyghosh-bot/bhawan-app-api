@@ -1,8 +1,9 @@
 const { validationResult } = require("express-validator");
 const { db } = require("../firebase.js");
-const { setDoc, doc, getDoc } = require("firebase/firestore");
+const { setDoc, doc, getDoc, collection, addDoc, where, getDocs, deleteDoc } = require("firebase/firestore");
 
 const MENU_COLLECTION = "menu";
+const STUDENTS_COLLECTION = "students";
 
 const checkBodyData = (req, next) => {
   const errors = validationResult(req).errors;
@@ -18,7 +19,7 @@ const checkBodyData = (req, next) => {
 exports.addMenu = async (req, res, next) => {
   checkBodyData(req, next);
   try {
-    const { day, meal, menu } = req.body;
+    const { day, meal, menu, hasCoupon } = req.body;
     const hostel = req.hostel;
     const hostelPOR = req.hostelPOR;
     if (hostelPOR != "Mess") {
@@ -30,6 +31,7 @@ exports.addMenu = async (req, res, next) => {
     const docRef = doc(db, MENU_COLLECTION, hostel, day, meal);
     await setDoc(docRef, {
       menu: menu,
+      hasCoupon:hasCoupon,
     });
     res.status(200).json({
       message: "Menu Updated",
@@ -54,7 +56,7 @@ exports.getMenu = async (req, res, next) => {
     const breakfastDocSnap = await getDoc(breakfastDocRef);
     const lunchDocSnap = await getDoc(lunchDocRef);
     const dinnerDocSnap = await getDoc(dinnerDocRef);
-    if (!breakfastDocSnap.exists || !breakfastDocSnap.data()) {
+    if (!breakfastDocSnap.exists() || !breakfastDocSnap.data()) {
       breakfast = null;
     } else {
       breakfast = breakfastDocSnap.data();
@@ -70,9 +72,9 @@ exports.getMenu = async (req, res, next) => {
       dinner = dinnerDocSnap.data();
     }
     res.status(200).json({
-      breakfast: breakfast.menu,
-      lunch: lunch.menu,
-      dinner: dinner.menu,
+      breakfast: breakfast,
+      lunch: lunch,
+      dinner: dinner,
     });
   } catch (error) {
     console.log(error);
@@ -82,3 +84,56 @@ exports.getMenu = async (req, res, next) => {
     next(error);
   }
 };
+// apply/unapply for coupon
+exports.applyCoupon=async (req,res,next)=>{
+  try {
+    const {day,meal} = req.query
+    const {name,enrollment,hostel} =req
+    const menuDocRef=doc(db,MENU_COLLECTION,hostel,day,meal)
+    const menuDocSnap=await getDoc(menuDocRef)
+    const menu=menuDocSnap.data()
+    if(!menuDocSnap.exists() || !menuDocSnap.data() || !menuDocSnap.data().hasCoupon){
+      return res.status(403).json({
+        error:"Forbidden",
+        message:"Cannot apply for coupon"
+      })
+    }
+    const studentDocRef=doc(db,STUDENTS_COLLECTION,enrollment)
+    const studentDocSnap=await getDoc(studentDocRef)
+    if(!studentDocSnap.exists()){
+      return res.status(404).json({     
+        message:"Student not found"
+      })
+    }   
+    const couponCollectionRef=collection(db,MENU_COLLECTION,hostel,day,meal,"Coupons")
+    const couponQuery=query(couponCollectionRef,where("enrollment","==",enrollment))
+    const querySnapshot=await getDocs(couponQuery)
+    if(querySnapshot.empty)
+    {
+      const couponDocRef=await addDoc(couponCollectionRef,{
+        name:name,
+        enrollment:enrollment
+      })
+      res.status(200).json({
+        message:"Applied for coupon"
+      })
+    }else{
+      const couponDoc=querySnapshot.docs[0]
+      await deleteDoc(couponDoc.ref)
+      res.status(200).json({
+        message:"Unapplied for coupon"
+      })
+    }
+    
+    
+  } catch (error) {
+    console.log(error);
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+  
+  
+
+}
