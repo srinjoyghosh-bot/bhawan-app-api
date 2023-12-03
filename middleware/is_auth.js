@@ -19,11 +19,9 @@ module.exports = (req, res, next) => {
     err.statusCode = 401;
     throw error;
   }
-  console.log(decodedToken.enrollment);
-  console.log(decodedToken);
   req.enrollment = decodedToken.enrollment;
-  req.hostel=decodedToken.hostel
-  req.hostelPOR=decodedToken.hostelSecretaryPOR
+  req.hostel = decodedToken.hostel;
+  req.hostelPOR = decodedToken.hostelSecretaryPOR;
   req.isAuth = true;
   next();
 };

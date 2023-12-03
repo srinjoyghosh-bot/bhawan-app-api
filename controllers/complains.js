@@ -155,10 +155,10 @@ exports.markAsResolved = async (req, res, next) => {
         message: "Only hostel secretaries can resolve respective complains",
       });
     }
-    complain.isResolved = true;
+    complain.isResolved = !complain.isResolved;
     await setDoc(docRef, complain);
     res.status(200).json({
-      message: "Complain marked as resolved!",
+      message: "Complain marked as resolved/unresolved!",
     });
   } catch (error) {
     console.log(error);

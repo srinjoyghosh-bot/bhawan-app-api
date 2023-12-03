@@ -1,16 +1,6 @@
 const { validationResult } = require("express-validator");
 const { db } = require("../firebase.js");
-const {
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  setDoc,
-  doc,
-  getDoc,
-  deleteDoc,
-} = require("firebase/firestore");
+const { setDoc, doc, getDoc } = require("firebase/firestore");
 
 const MENU_COLLECTION = "menu";
 
@@ -43,6 +33,46 @@ exports.addMenu = async (req, res, next) => {
     });
     res.status(200).json({
       message: "Menu Updated",
+    });
+  } catch (error) {
+    console.log(error);
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
+exports.getMenu = async (req, res, next) => {
+  try {
+    const day = req.query.day;
+    const hostel = req.hostel;
+    const breakfastDocRef = doc(db, MENU_COLLECTION, hostel, day, "Breakfast");
+    const lunchDocRef = doc(db, MENU_COLLECTION, hostel, day, "Lunch");
+    const dinnerDocRef = doc(db, MENU_COLLECTION, hostel, day, "Dinner");
+    let breakfast, lunch, dinner;
+    const breakfastDocSnap = await getDoc(breakfastDocRef);
+    const lunchDocSnap = await getDoc(lunchDocRef);
+    const dinnerDocSnap = await getDoc(dinnerDocRef);
+    if (!breakfastDocSnap.exists || !breakfastDocSnap.data()) {
+      breakfast = null;
+    } else {
+      breakfast = breakfastDocSnap.data();
+    }
+    if (!lunchDocSnap.exists || !lunchDocSnap.data()) {
+      lunch = null;
+    } else {
+      lunch = lunchDocSnap.data();
+    }
+    if (!dinnerDocSnap.exists || !dinnerDocSnap.data()) {
+      dinner = null;
+    } else {
+      dinner = dinnerDocSnap.data();
+    }
+    res.status(200).json({
+      breakfast: breakfast.menu,
+      lunch: lunch.menu,
+      dinner: dinner.menu,
     });
   } catch (error) {
     console.log(error);
